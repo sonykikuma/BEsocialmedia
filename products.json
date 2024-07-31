@@ -1,0 +1,23 @@
+[  {
+    "title": "The Power of Habit",
+    "author": "Charles Duhigg",
+    "publishedYear": 2012,
+    "genre": ["Non-Fiction", "Self-help"],
+    "language": "English",
+    "country": "United States",
+    "rating": 8.4,
+    "summary": "Explores the science behind habits and how they can be changed to transform lives.",
+    "coverImageUrl": "https://example.com/the_power_of_habit.jpg"
+  },
+  {
+    "title": "Pinki",
+    "author": "Pran Kumar Sharma",
+    "publishedYear": 1978,
+    "genre": ["Kids", "Comedy"],
+    "language": "Hindi",
+    "country": "India ",
+    "rating": 9.4,
+    "summary": "Pinki is often seen with her pet squirrel named Kut-Kut.[2] The other notable characters in this comic are her neighbor Jhapatji, her friends Bhiku and Champu.",
+    "coverImageUrl": "https://en.wikipedia.org/wiki/Pinki_(comics)#/media/File:Pinki_comics.jpg"
+  }
+  ]

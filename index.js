@@ -18,6 +18,10 @@ const Product = require("./models/products.models")
 app.use(express.json())
 
  initializeDatabase();
+app.get("/", (req, res) => {
+  res.send("Hello, Express!");
+});
+
 
 // const jsonData = fs.readFileSync("products.json", "utf8")
 // const productsData = JSON.parse(jsonData)

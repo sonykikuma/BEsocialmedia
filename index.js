@@ -259,27 +259,23 @@ app.post('/carts/:userId/items/:productId/wishlist', async (req, res) => {
   const { userId, productId } = req.params;
 
   try {
-    // Find the cart
     let cart = await Cart.findOne({ userId });
     if (!cart) return res.status(404).json({ error: 'Cart not found' });
 
-    // Find the item in the cart
     const cartItemIndex = cart.items.findIndex(item => item.productId.toString() === productId);
     if (cartItemIndex === -1) return res.status(404).json({ error: 'Product not found in cart' });
 
     // Remove the item from the cart
     const [cartItem] = cart.items.splice(cartItemIndex, 1);
 
-    // Save the updated cart
     await cart.save();
 
-    // Find the wishlist
     let wishlist = await Wishlist.findOne({ userId });
     if (!wishlist) {
       // Create a new wishlist if one does not exist
       wishlist = new Wishlist({ userId, items: [{ productId }] });
     } else {
-      // Check if the product is already in the wishlist
+      // here checking if the product is already in the wishlist
       const existingItem = wishlist.items.find(item => item.productId.toString() === productId);
       if (!existingItem) {
         // Add the item to the wishlist
@@ -287,7 +283,6 @@ app.post('/carts/:userId/items/:productId/wishlist', async (req, res) => {
       }
     }
 
-    // Save the updated wishlist
     const updatedWishlist = await wishlist.save();
 
     res.status(200).json({ cart, wishlist: updatedWishlist });
@@ -297,21 +292,76 @@ app.post('/carts/:userId/items/:productId/wishlist', async (req, res) => {
 });
 
 
-// Remove a product from the cart
 app.delete('/carts/:userId/items/:productId', async (req, res) => {
   const { userId, productId } = req.params;
 
   try {
-    let cart = await Cart.findOne({ userId });
-    if (!cart) return res.status(404).json({ error: 'Cart not found' });
+    console.log(`Received request to delete product from cart: userId=${userId}, productId=${productId}`);
 
-    cart.items = cart.items.filter(item => item.productId.toString() !== productId);
-    const updatedCart = await cart.save();
-    res.status(200).json(updatedCart);
+    // Find the cart by userId
+    const cart = await Cart.findOne({ userId });
+    if (!cart) {
+      console.error(`Cart not found for userId=${userId}`);
+      return res.status(404).json({ error: 'Cart not found' });
+    }
+
+    // Log the items before update
+    console.log('Cart items before update:', cart.items);
+
+    // Filter out the item with the specified productId
+    cart.items = cart.items.filter(item => {
+      if (productId === 'null') {
+        return item.productId === null;
+      }
+      return item.productId && String(item.productId._id) !== productId;
+    });
+
+    // Log the items after update
+    console.log('Cart items after update:', cart.items);
+
+    // Save the updated cart document
+    await cart.save();
+
+    console.log(`Successfully removed item with productId=${productId} from cart for userId=${userId}`);
+    res.status(200).json(cart);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to remove item from cart', details: error.message });
+    console.error('Error removing item from cart:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+
+
+// app.delete('/carts/:userId/items/:productId', async (req, res) => {
+//   const { userId, productId } = req.params;
+
+//   try {
+//     console.log(`Received request to delete product from cart: userId=${userId}, productId=${productId}`);
+
+//     // Find the cart by userId
+//     const cart = await Cart.findOne({ userId });
+//     if (!cart) {
+//       console.error(`Cart not found for userId=${userId}`);
+//       return res.status(404).json({ error: 'Cart not found' });
+//     }
+
+//     // Handle `null` productId case separately
+//     if (productId === 'null') {
+//       cart.items = cart.items.filter(item => item.productId !== null);
+//     } else {
+//       cart.items = cart.items.filter(item => item.productId && String(item.productId._id) !== productId);
+//     }
+
+//     // Save the updated cart document
+//     await cart.save();
+
+//     console.log(`Successfully removed item with productId=${productId} from cart for userId=${userId}`);
+//     res.status(200).json(cart);
+//   } catch (error) {
+//     console.error('Error removing item from cart:', error);
+//     res.status(500).json({ error: 'Internal Server Error' });
+//   }
+// });
+
 
 
 // Get cart by userId
@@ -396,6 +446,37 @@ app.delete('/wishlists/:userId/items/:productId', async (req, res) => {
   }
 });
 
+// Move an item from the wishlist to the cart
+app.post('/wishlists/:userId/items/:productId/move-to-cart', async (req, res) => {
+  const { userId, productId } = req.params;
+
+  try {
+    // Find and remove the item from the wishlist
+    let wishlist = await Wishlist.findOne({ userId });
+    if (!wishlist) return res.status(404).json({ error: 'Wishlist not found' });
+
+    wishlist.items = wishlist.items.filter(item => item.productId.toString() !== productId);
+    await wishlist.save();
+
+    // Find or create the cart
+    let cart = await Cart.findOne({ userId });
+    if (!cart) {
+      cart = new Cart({ userId, items: [{ productId, quantity: 1 }] });
+    } else {
+      const existingItem = cart.items.find(item => item.productId.toString() === productId);
+      if (existingItem) {
+        existingItem.quantity += 1;
+      } else {
+        cart.items.push({ productId, quantity: 1 });
+      }
+    }
+
+    const updatedCart = await cart.save();
+    res.status(200).json(updatedCart);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to move item to cart', details: error.message });
+  }
+});
 
 
 

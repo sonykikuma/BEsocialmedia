@@ -254,7 +254,7 @@ res.status(200).json({ totalPrice });
 })
 
 
-// Add product to wishlist
+// move product to wishlist
 app.post('/carts/:userId/items/:productId/wishlist', async (req, res) => {
   const { userId, productId } = req.params;
 
@@ -296,19 +296,12 @@ app.delete('/carts/:userId/items/:productId', async (req, res) => {
   const { userId, productId } = req.params;
 
   try {
-    console.log(`Received request to delete product from cart: userId=${userId}, productId=${productId}`);
-
-    // Find the cart by userId
     const cart = await Cart.findOne({ userId });
     if (!cart) {
       console.error(`Cart not found for userId=${userId}`);
       return res.status(404).json({ error: 'Cart not found' });
     }
 
-    // Log the items before update
-    console.log('Cart items before update:', cart.items);
-
-    // Filter out the item with the specified productId
     cart.items = cart.items.filter(item => {
       if (productId === 'null') {
         return item.productId === null;
@@ -316,13 +309,9 @@ app.delete('/carts/:userId/items/:productId', async (req, res) => {
       return item.productId && String(item.productId._id) !== productId;
     });
 
-    // Log the items after update
-    console.log('Cart items after update:', cart.items);
-
-    // Save the updated cart document
+   // console.log('Cart items after update:', cart.items);
     await cart.save();
-
-    console.log(`Successfully removed item with productId=${productId} from cart for userId=${userId}`);
+   // console.log(`Successfully removed item with productId=${productId} from cart for userId=${userId}`);
     res.status(200).json(cart);
   } catch (error) {
     console.error('Error removing item from cart:', error);
@@ -331,36 +320,6 @@ app.delete('/carts/:userId/items/:productId', async (req, res) => {
 });
 
 
-// app.delete('/carts/:userId/items/:productId', async (req, res) => {
-//   const { userId, productId } = req.params;
-
-//   try {
-//     console.log(`Received request to delete product from cart: userId=${userId}, productId=${productId}`);
-
-//     // Find the cart by userId
-//     const cart = await Cart.findOne({ userId });
-//     if (!cart) {
-//       console.error(`Cart not found for userId=${userId}`);
-//       return res.status(404).json({ error: 'Cart not found' });
-//     }
-
-//     // Handle `null` productId case separately
-//     if (productId === 'null') {
-//       cart.items = cart.items.filter(item => item.productId !== null);
-//     } else {
-//       cart.items = cart.items.filter(item => item.productId && String(item.productId._id) !== productId);
-//     }
-
-//     // Save the updated cart document
-//     await cart.save();
-
-//     console.log(`Successfully removed item with productId=${productId} from cart for userId=${userId}`);
-//     res.status(200).json(cart);
-//   } catch (error) {
-//     console.error('Error removing item from cart:', error);
-//     res.status(500).json({ error: 'Internal Server Error' });
-//   }
-// });
 
 
 
@@ -515,7 +474,8 @@ app.get("/users/:userId", async (req, res) => {
 
   try {
     const user = await User.findById(userId).populate({path: "cart.items.productId",
-    model:"Product"                                                  });
+    model:"Product"                                                  }).populate("addresses");  
+
 
     if (user) {
       res.status(200).json(user);
@@ -683,26 +643,6 @@ app.post("/products/:productId/price", async (req, res) => {
 });
 
 
-// async function deleteBook(bookId) {
-//   try {
-//     const deletedBook = await Book.findByIdAndDelete(bookId);
-//     return deletedBook;
-//   } catch (error) {
-//     console.log(error);
-//   }
-// }
-// app.delete("/books/:bookId", async (req, res) => {
-//   try {
-//     const deletedBook = await deleteBook(req.params.bookId);
-//     if (deletedBook) {
-//       res.status(200).json({ message: "Book deleted successfully." });
-//     } else {
-//       res.status(404).json({ error: "Book not found." });
-//     }
-//   } catch (error) {
-//     res.status(500).json({ error: "Failed to delete book" });
-//   }
-// });
 
 const PORT = 3000;
 app.listen(PORT, (req, res) => {

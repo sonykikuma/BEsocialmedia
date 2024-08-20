@@ -1,21 +1,25 @@
 const mongoose = require('mongoose')
 
-const userSchema = new mongoose.Schema({
-  name:String,
-  email:String,
-  password:String, 
-  cart: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Cart'
+
+const mediaUserSchema = new mongoose.Schema({
+  username:{
+    type:String,
+    required:true,
+    unique:true
   },
-  addresses: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Address'
-  }],
-  phoneNumber:String,
+  email:{
+    type:String,
+    required:true,
+    unique:true
+  },
+  password:{
+    type:String,
+    required:true
+  },
+  followers:[{type:mongoose.Schema.Types.ObjectId, ref: 'MediaUser'}],
+  following:[{type:mongoose.Schema.Types.ObjectId, ref: 'MediaUser'}],
+  bookmarks:[{type:mongoose.Schema.Types.ObjectId, ref:"Post"}]
+}, {timestamps:true})
 
-
-},{timestamps:true})
-
-const User = mongoose.model("User", userSchema)
-module.exports = User
+const MediaUser = mongoose.model("MediaUser", mediaUserSchema, 'mediausers')
+module.exports = MediaUser

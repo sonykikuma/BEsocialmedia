@@ -10,14 +10,11 @@ const corsOptions = {
 app.use(cors(corsOptions));
 
 const { initializeDatabase } = require("./db");
+const Post = require("./models/post.models")
+const MediaUser = require("./models/user.models")
+const bcrypt = require('bcrypt');// for security reasons, it's important to hash the password before saving it to the database. 
+
 //const fs = require('fs')
-const Book = require("./models/books.models");
-const Category = require("./models/category.models");
-const Product = require("./models/products.models");
-const Cart = require("./models/cart.models");
-const Wishlist = require("./models/wishlist.models")
-const User = require("./models/user.models");
-const Address = require("./models/address.models")
 
 app.use(express.json());
 
@@ -26,622 +23,193 @@ app.get("/", (req, res) => {
   res.send("Hello, Express!");
 });
 
-// const jsonData = fs.readFileSync("products.json", "utf8")
-// const productsData = JSON.parse(jsonData)
-// function seedData() {
-//   try {
-//     for (const productData of productsData) {
-//       const newProduct = new Product({
-//         title: productData.title,
-//         author: productData.author,
-//         publishedYear: productData.publishedYear,
-//         genre: productData.genre,
-//         language: productData.language,
-//         country: productData.country,
-//         rating: productData.rating,
-//         summary: productData.summary,
-//         coverImageUrl: productData.coverImageUrl,
-//       });
-//       newProduct.save();
-//       console.log("new product", newProduct.title);
-//     }
-//   } catch (error) {
-//     console.log("error seeding the data", error);
-//   }
-// }
+//The exec() method is used to explicitly execute a query and return a promise. When you chain methods like find(), select(), sort(), etc., in Mongoose, it doesn't immediately execute the query. Instead, it creates a query object that you can later execute using .exec().
 
-// seedData();
 
-async function createProduct(newProduct) {
-  try {
-    const product = new Product(newProduct);
-    const savedProduct = await product.save();
-    return savedProduct;
-  } catch (error) {
-    throw error;
+//to get all posts
+app.get("/posts", async(req,res)=>{
+  try{
+    const posts = await Post.find().populate('author', 'username').exec()
+    res.status(200).json(posts)
+  } catch(error){
+    res.status(500).json({message: error.message})
   }
-}
-app.post("/products", async (req, res) => {
-  try {
-    const savedProduct = await createProduct(req.body);
-    res
-      .status(201)
-      .json({ message: "Book added successfully.", product: savedProduct });
-  } catch (error) {
-    console.log("error in saving book:", error);
-    res
-      .status(500)
-      .json({ error: "failed to add new book.", details: error.message });
-  }
-});
-
-//category adding
-async function createCategory(newCategory) {
-  try {
-    const category = new Category(newCategory);
-    const savedCategory = await category.save();
-    return savedCategory;
-  } catch (error) {
-    throw error;
-  }
-}
-app.post("/categories", async (req, res) => {
-  try {
-    const savedCategory = await createCategory(req.body);
-    res
-      .status(201)
-      .json({
-        message: "category added successfully.",
-        category: savedCategory,
-      });
-  } catch (error) {
-    console.log("error in saving category:", error);
-    res
-      .status(500)
-      .json({ error: "failed to add new category.", details: error.message });
-  }
-});
-
-//get products
-async function getAllProducts() {
-  try {
-    const allProducts = await Product.find();
-    return allProducts;
-  } catch (error) {
-    console.log("error in fetching books", error);
-  }
-}
-
-app.get("/products", async (req, res) => {
-  try {
-    const products = await getAllProducts();
-    if (products.length != 0) {
-      res.json(products);
-    } else {
-      res.status(404).json({ error: "No books found." });
-    }
-  } catch (error) {
-    res.status(500).json({ error: "failed to fetch books." });
-  }
-});
-//get categories
-async function getAllCategories() {
-  try {
-    const allCategories = await Category.find();
-    return allCategories;
-  } catch (error) {
-    console.log("error in fetching categories", error);
-  }
-}
-
-app.get("/categories", async (req, res) => {
-  try {
-    const categories = await getAllCategories();
-    if (categories.length != 0) {
-      res.json(categories);
-    } else {
-      res.status(404).json({ error: "No categories found." });
-    }
-  } catch (error) {
-    res.status(500).json({ error: "failed to fetch categories." });
-  }
-});
-
-
-
-
-// Add or update product in cart
-app.post("/carts/:userId/items", async (req, res) => {
-  const { userId } = req.params;
-  const { productId, quantity } = req.body;
-
-  try {
-    let cart = await Cart.findOne({ userId });
-    if (!cart) {
-      // Create a new cart if one does not exist
-      cart = new Cart({
-        userId,
-        items: [{ productId, quantity }],
-      });
-    } else {
-      // Check if the product is already in the cart
-      const existingItem = cart.items.find(
-        (item) => item.productId.toString() === productId,
-      );
-
-      if (existingItem) {
-        // Update quantity if product already exists
-        existingItem.quantity += quantity;
-      } else {
-        // Add new item to the cart
-        cart.items.push({ productId, quantity });
-      }
-    }
-
-    const updatedCart = await cart.save();
-    res.status(200).json(updatedCart);
-  } catch (error) {
-    res
-      .status(500)
-      .json({ error: "Failed to update cart", details: error.message });
-  }
-});
-
-// Increase quantity of a product in the cart
-app.post('/carts/:userId/items/:productId/increase', async (req, res) => {
-  const { userId, productId } = req.params;
-
-  try {
-    let cart = await Cart.findOne({ userId });
-    if (!cart) return res.status(404).json({ error: 'Cart not found' });
-
-    const existingItem = cart.items.find(item => item.productId.toString() === productId);
-    if (existingItem) {
-      existingItem.quantity += 1;
-      const updatedCart = await cart.save();
-      res.status(200).json(updatedCart);
-    } else {
-      res.status(404).json({ error: 'Product not found in cart' });
-    }
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to increase quantity', details: error.message });
-  }
-});
-
-// Decrease quantity of a product in the cart
-app.post('/carts/:userId/items/:productId/decrease', async (req, res) => {
-  const { userId, productId } = req.params;
-
-  try {
-    let cart = await Cart.findOne({ userId });
-    if (!cart) return res.status(404).json({ error: 'Cart not found' });
-
-    const existingItem = cart.items.find(item => item.productId.toString() === productId);
-    if (existingItem) {
-      if(existingItem.quantity > 1){
-        existingItem.quantity -= 1;
-      }  else {
-        //remove item from the cart
-        cart.items = cart.items.filter(item=> item.productId.toString() !== productId)
-      }
-      
-      const updatedCart = await cart.save();
-      res.status(200).json(updatedCart);
-    } else {
-      res.status(404).json({ error: 'Product not found in cart' });
-    }
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to increase quantity', details: error.message });
-  }
-});
-
-//processing products to checkout and calculate total price
-app.get("/carts/:userId/checkout", async(req,res)=>{
-  const {userId} = req.params;
-  
-try{
-const cart = await Cart.findOne({ userId }).populate('items.productId');
-if (!cart) return res.status(404).json({ error: 'Cart not found' });
-
-const totalPrice = cart.items.reduce((total, item) => {
-  return total + (item.productId.price * item.quantity);
-}, 0);
-
-res.status(200).json({ totalPrice });
-} catch(error){
-  res.status(500).json({error:"failed to calculate total price", details:error.message})
-}
 })
 
 
-// move product to wishlist
-app.post('/carts/:userId/items/:productId/wishlist', async (req, res) => {
-  const { userId, productId } = req.params;
-
-  try {
-    let cart = await Cart.findOne({ userId });
-    if (!cart) return res.status(404).json({ error: 'Cart not found' });
-
-    const cartItemIndex = cart.items.findIndex(item => item.productId.toString() === productId);
-    if (cartItemIndex === -1) return res.status(404).json({ error: 'Product not found in cart' });
-
-    // Remove the item from the cart
-    const [cartItem] = cart.items.splice(cartItemIndex, 1);
-
-    await cart.save();
-
-    let wishlist = await Wishlist.findOne({ userId });
-    if (!wishlist) {
-      // Create a new wishlist if one does not exist
-      wishlist = new Wishlist({ userId, items: [{ productId }] });
-    } else {
-      // here checking if the product is already in the wishlist
-      const existingItem = wishlist.items.find(item => item.productId.toString() === productId);
-      if (!existingItem) {
-        // Add the item to the wishlist
-        wishlist.items.push({ productId });
-      }
-    }
-
-    const updatedWishlist = await wishlist.save();
-
-    res.status(200).json({ cart, wishlist: updatedWishlist });
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to move product to wishlist', details: error.message });
+//to post a post
+app.post("/media-user/posts", async (req, res)=>{
+  const {content, author} = req.body
+  try{
+    const newPost = new Post({content, author})
+    await newPost.save()
+    res.status(201).json(newPost)
+  } catch(error){
+    res.status(400).json({message: error.message})
   }
+})
+
+//to get a post 
+app.get('/posts/:postId', async (req, res) => {
+    try {
+        const post = await Post.findById(req.params.postId).populate('author', 'username').exec();
+        if (!post) return res.status(404).json({ message: 'Post not found' });
+        res.status(200).json(post);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
 });
 
-
-app.delete('/carts/:userId/items/:productId', async (req, res) => {
-  const { userId, productId } = req.params;
-
-  try {
-    const cart = await Cart.findOne({ userId });
-    if (!cart) {
-      console.error(`Cart not found for userId=${userId}`);
-      return res.status(404).json({ error: 'Cart not found' });
-    }
-
-    cart.items = cart.items.filter(item => {
-      if (productId === 'null') {
-        return item.productId === null;
-      }
-      return item.productId && String(item.productId._id) !== productId;
-    });
-
-   // console.log('Cart items after update:', cart.items);
-    await cart.save();
-   // console.log(`Successfully removed item with productId=${productId} from cart for userId=${userId}`);
-    res.status(200).json(cart);
-  } catch (error) {
-    console.error('Error removing item from cart:', error);
-    res.status(500).json({ error: 'Internal Server Error' });
-  }
-});
-
-
-
-
-
-// Get cart by userId
-app.get("/carts/:userId", async (req, res) => {
-  const { userId } = req.params;
-
-  try {
-    const cart = await Cart.findOne({userId}).populate({path:"items.productId",
-              model:"Product"                                         });
-
-    if (cart) {
-     // console.log('Populated Cart:', JSON.stringify(cart, null, 2)); 
-
-      res.status(200).json(cart);
-    } else {
-      res.status(404).json({ error: "Cart not found" });
-    }
-  } catch (error) {
-    res
-      .status(500)
-      .json({ error: "Failed to retrieve cart", details: error.message });
-  }
-});
-
-
-
-
-//wishlist part started
-//get wishlist 
-app.get("/wishlists/:userId", async (req,res)=>{
-  const {userId} = req.params
+//to update a post
+app.post("/posts/:postId", async(req,res)=>{
+  const {content} = req.body
+  const postId = req.params.postId
 
   try{
-    const wishlist = await Wishlist.findOne({userId}).populate({path:"items.productId",
-              model:"Product"  })
-    if(wishlist){
-      res.status(200).json(wishlist)
-    } else {
-      res.status(404).json({error:"wishlist not found"})
-    }
-  }catch (error) {
-    res.status(500).json({ error: 'Failed to retrieve wishlist', details: error.message });
+   const updatedPost = await Post.findByIdAndUpdate(postId, {content},{new:true}) 
+if(!updatedPost){
+  return res.status(404).json({message:"Post not found"})
+}
+
+   res.status(200).json(updatedPost) 
+  } catch(error){
+    res.status(500).json({message:error.message})
   }
 })
 
-// Add a product to the wishlist directly
-app.post('/wishlists/:userId/items', async (req, res) => {
-  const { userId } = req.params;
-  const { productId } = req.body;
+//to like a post 
+app.post('/posts/like/:postId', async (req, res) => {
+    const userId = req.body.userId;
 
-  try {
-    let wishlist = await Wishlist.findOne({ userId });
-    if (!wishlist) {
-      wishlist = new Wishlist({ userId, items: [{ productId }] });
-    } else {
-      const existingItem = wishlist.items.find(item => item.productId.toString() === productId);
-      if (!existingItem) {
-        wishlist.items.push({ productId });
-      }
+    try {
+        const post = await Post.findById(req.params.postId);
+        if (!post) return res.status(404).json({ message: 'Post not found' });
+
+        if (!post.likes.includes(userId)) {
+            post.likes.push(userId);
+            post.dislikes.pull(userId); // Remove dislike if any
+        }
+
+        await post.save();
+        res.status(200).json(post);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+//to dislike a post
+app.post('/posts/dislike/:postId', async (req, res) => {
+    const userId = req.body.userId;
+
+    try {
+        const post = await Post.findById(req.params.postId);
+        if (!post) return res.status(404).json({ message: 'Post not found' });
+
+        if (!post.dislikes.includes(userId)) {
+            post.dislikes.push(userId);
+            post.likes.pull(userId); // Remove like if any
+        }
+
+        await post.save();
+        res.status(200).json(post);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+
+//to delete a post
+app.delete("/posts/:postId", async (req, res)=>{
+
+  try{
+     const deletePost = await Post.findByIdAndDelete(req.params.postId)
+
+    if(!deletePost){
+      res.status(404).json({message:"post not found"})
     }
 
-    const updatedWishlist = await wishlist.save();
-    res.status(200).json(updatedWishlist);
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to add item to wishlist', details: error.message });
+    res.status(200).json({message:"Post deleted successfully"})
+  } catch(error){
+    res.status(500).json({message: error.message})
   }
-});
+})
 
-// Remove a product from the wishlist
-app.delete('/wishlists/:userId/items/:productId', async (req, res) => {
-  const { userId, productId } = req.params;
+//8.to add a post to user's bookmark
+app.post("/media-users/bookmark/:postId", async (req, res)=>{
+const userId = req.body.userId
+  const postId = req.params.postId
 
-  try {
-    let wishlist = await Wishlist.findOne({ userId });
-    if (!wishlist) return res.status(404).json({ error: 'Wishlist not found' });
+  try{
+    const user = await MediaUser.findById(userId);
+    if (!user) return res.status(404).json({ message: 'User not found' });
 
-    wishlist.items = wishlist.items.filter(item => item.productId.toString() !== productId);
-    const updatedWishlist = await wishlist.save();
-    res.status(200).json(updatedWishlist);
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to remove item from wishlist', details: error.message });
-  }
-});
-
-// Move an item from the wishlist to the cart
-app.post('/wishlists/:userId/items/:productId/move-to-cart', async (req, res) => {
-  const { userId, productId } = req.params;
-
-  try {
-    // Find and remove the item from the wishlist
-    let wishlist = await Wishlist.findOne({ userId });
-    if (!wishlist) return res.status(404).json({ error: 'Wishlist not found' });
-
-    wishlist.items = wishlist.items.filter(item => item.productId.toString() !== productId);
-    await wishlist.save();
-
-    // Find or create the cart
-    let cart = await Cart.findOne({ userId });
-    if (!cart) {
-      cart = new Cart({ userId, items: [{ productId, quantity: 1 }] });
-    } else {
-      const existingItem = cart.items.find(item => item.productId.toString() === productId);
-      if (existingItem) {
-        existingItem.quantity += 1;
-      } else {
-        cart.items.push({ productId, quantity: 1 });
-      }
+    if(!user.bookmarks.includes(postId)){
+      user.bookmarks.push(postId)
+      await user.save()
     }
+    res.status(200).json(user.bookmarks);
 
-    const updatedCart = await cart.save();
-    res.status(200).json(updatedCart);
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to move item to cart', details: error.message });
+  } catch(error){
+    res.status(500).json({message: error.message})
   }
-});
+})
 
+//9. to get all the bookmarks of user
+app.get('/media-users/bookmark', async (req, res) => {
+    const userId = req.body.userId;
 
+    try {
+        const user = await MediaUser.findById(userId).populate('bookmarks').exec();
+        if (!user) return res.status(404).json({ message: 'User not found' });
 
-//to add data for user
-app.post("/users", async (req, res) => {
-  try {
-    const user = new User(req.body);
-    const savedUser = await user.save();
-    res.status(201).json(savedUser);
-  } catch (error) {
-    res.status(500).json({ error: "Failed to create user", details: error.message });
-  }
-});
-
-//update user data
-app.put('/users/:userId', async (req, res) => {
-  const { userId } = req.params;
-  const updates = req.body;
-
-  try {
-    const updatedUser = await User.findByIdAndUpdate(userId, updates, { new: true });
-    if (updatedUser) {
-      res.status(200).json(updatedUser);
-    } else {
-      res.status(404).json({ error: 'User not found' });
+        res.status(200).json(user.bookmarks);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
     }
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to update user', details: error.message });
-  }
 });
 
+//10. to remove a post from user's bookmark
+app.post('/media-users/remove-bookmark/:postId', async (req, res) => {
+    const userId = req.body.userId;
+    const postId = req.params.postId;
 
-//get user
-app.get("/users/:userId", async (req, res) => {
-  const { userId } = req.params;
+    try {
+        const user = await MediaUser.findById(userId);
+        if (!user) return res.status(404).json({ message: 'User not found' });
 
-  try {
-    const user = await User.findById(userId).populate({path: "cart.items.productId",
-    model:"Product"                                                  }).populate("addresses");  
+        user.bookmarks.pull(postId);
+        await user.save();
 
-
-    if (user) {
-      res.status(200).json(user);
-    } else {
-      res.status(404).json({ error: "user not found" });
+        res.status(200).json(user.bookmarks);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
     }
-  } catch (error) {
-    res
-      .status(500)
-      .json({ error: "Failed to retrieve user", details: error.message });
-  }
 });
 
-
-
-
-//address
-// Add new address
-app.post('/users/:userId/addresses', async (req, res) => {
-  const { userId } = req.params;
-  const { addressLine1, addressLine2, city, state, postalCode, country } = req.body;
-
-  try {
-    const address = new Address({
-      userId,
-      addressLine1,
-      addressLine2,
-      city,
-      state,
-      postalCode,
-      country
-    });
-
-    const savedAddress = await address.save();
-
-    // Add address to user's addresses array
-    await User.findByIdAndUpdate(userId, { $push: { addresses: savedAddress._id } });
-
-    res.status(201).json(savedAddress);
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to add address', details: error.message });
-  }
-});
-
-// Get all addresses for a user
-app.get('/users/:userId/addresses', async (req, res) => {
-  const { userId } = req.params;
-
-  try {
-    const user = await User.findById(userId).populate('addresses');
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
+//11. to get all the users
+app.get('/media-users', async (req, res) => {
+    try {
+        const users = await MediaUser.find().select('username email').exec();
+        res.status(200).json(users);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
     }
-    res.status(200).json(user.addresses);
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to retrieve addresses', details: error.message });
-  }
 });
 
-// Updating an address
-app.put('/addresses/:addressId', async (req, res) => {
-  const { addressId } = req.params;
-  const { addressLine1, addressLine2, city, state, postalCode, country } = req.body;
+//to post a user
+app.post("/media-users", async (req, res) => {
+  const { username, email, password } = req.body;
 
   try {
-    const updatedAddress = await Address.findByIdAndUpdate(
-      addressId,
-      { addressLine1, addressLine2, city, state, postalCode, country },
-      { new: true }
-    );
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-    if (!updatedAddress) {
-      return res.status(404).json({ error: 'Address not found' });
-    }
-
-    res.status(200).json(updatedAddress);
+    const newUser = new MediaUser({ username, email, password: hashedPassword });
+    await newUser.save();
+    res.status(201).json(newUser);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to update address', details: error.message });
+    res.status(400).json({ message: error.message });
   }
 });
-
-// Deleting an address
-app.delete('/addresses/:addressId', async (req, res) => {
-  const { addressId } = req.params;
-
-  try {
-    const deletedAddress = await Address.findByIdAndDelete(addressId);
-    if (!deletedAddress) {
-      return res.status(404).json({ error: 'Address not found' });
-    }
-
-    // Remove address from user's addresses array
-    await User.findByIdAndUpdate(deletedAddress.userId, { $pull: { addresses: addressId } });
-
-    res.status(200).json({ message: 'Address deleted successfully' });
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to delete address', details: error.message });
-  }
-});
-
-
-
-
-
-
-//updating products
-async function updateProduct(productId, dataToUpdate) {
-  try {
-    const updatedProduct = await Product.findByIdAndUpdate(
-      productId,
-      dataToUpdate,
-      { new: true },
-    );
-    return updatedProduct;
-  } catch (error) {
-    console.log("error in updating book data.", error);
-  }
-}
-app.post("/products/:productId", async (req, res) => {
-  try {
-    const updatedProduct = await updateProduct(req.params.productId, req.body);
-    if (updatedProduct) {
-      res
-        .status(200)
-        .json({
-          message: "Book updated successfully",
-          updatedProduct: updatedProduct,
-        });
-    } else {
-      res.status(404).json({ error: "Book does not exist." });
-    }
-  } catch (error) {
-    res.status(500).json({ error: "failed to update book price." });
-  }
-});
-//adding price
-async function updatePrice(productId, dataToUpdate) {
-  try {
-    const updatedPrice = await Product.findByIdAndUpdate(
-      productId,
-      dataToUpdate,
-      { new: true },
-    );
-    return updatedPrice;
-  } catch (error) {
-    console.log("error in updating book price.", error);
-  }
-}
-app.post("/products/:productId/price", async (req, res) => {
-  try {
-    const updatedPrice = await updatePrice(req.params.productId, req.body);
-    if (updatedPrice) {
-      res
-        .status(200)
-        .json({
-          message: "Book updated successfully.",
-          updatedPrice: updatedPrice,
-        });
-    } else {
-      res.status(404).json({ error: "book does not exist" });
-    }
-  } catch (error) {
-    res.status(500).json({ error: "failed to update book price." });
-  }
-});
-
 
 
 const PORT = 3000;

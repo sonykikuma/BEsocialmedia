@@ -16,6 +16,11 @@ const mediaUserSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    profilePic: {
+      type: String, 
+      default: '', 
+    },
+
     followers: [{ type: mongoose.Schema.Types.ObjectId, ref: "MediaUser" }],
     following: [{ type: mongoose.Schema.Types.ObjectId, ref: "MediaUser" }],
     bookmarks: [{ type: mongoose.Schema.Types.ObjectId, ref: "Post" }],

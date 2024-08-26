@@ -79,7 +79,7 @@ app.post("/media-users", async (req, res) => {
 //4. to update a user's details
 app.put('/media-user/:userId', async (req, res) => {
   const userId = req.params.userId;
-  const { username, email, followers, following, bookmarks, postId, newContent } = req.body;
+  const { username, email, followers, following, bookmarks, postId, newContent, profilePic } = req.body;
 
   try {
     const user = await MediaUser.findById(userId);
@@ -90,6 +90,8 @@ app.put('/media-user/:userId', async (req, res) => {
     if (followers) user.followers = followers;
     if (following) user.following = following;
     if (bookmarks) user.bookmarks = bookmarks;
+    if (profilePic) user.profilePic = profilePic; // profile pic 
+
 
     if (postId && newContent) {
       const postToUpdate = user.posts.find(post => post._id.toString() === postId);

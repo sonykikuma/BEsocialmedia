@@ -20,6 +20,11 @@ const mediaUserSchema = new mongoose.Schema(
       type: String, 
       default: '', 
     },
+    bio: {
+      type: String,
+      default: '', 
+    },
+
 
     followers: [{ type: mongoose.Schema.Types.ObjectId, ref: "MediaUser" }],
     following: [{ type: mongoose.Schema.Types.ObjectId, ref: "MediaUser" }],

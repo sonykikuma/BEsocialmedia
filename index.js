@@ -482,6 +482,11 @@ app.post("/media-user/follow/:userId", async (req, res) => {
   const currentUserId = req.body.userId; //
   const targetUserId = req.params.userId;
 
+  if (!currentUserId || !targetUserId) {
+    return res.status(404).json({ message: "User(ids) not found" });
+  }
+
+  
   try {
     const currentUser = await MediaUser.findById(currentUserId);
     const targetUser = await MediaUser.findById(targetUserId);
@@ -511,6 +516,13 @@ app.post("/media-user/unfollow/:userId", async (req, res) => {
   const currentUserId = req.body.userId; // Assuming the logged-in user's ID is sent in the request body
   const targetUserId = req.params.userId;
 
+
+  if (!currentUserId || !targetUserId) {
+    return res.status(404).json({ message: "User(s) not found" });
+  }
+
+
+  
   try {
     const currentUser = await MediaUser.findById(currentUserId);
     const targetUser = await MediaUser.findById(targetUserId);

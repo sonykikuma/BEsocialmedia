@@ -17,14 +17,13 @@ const mediaUserSchema = new mongoose.Schema(
       required: true,
     },
     profilePic: {
-      type: String, 
-      default: '', 
+      type: String,
+      default: "",
     },
     bio: {
       type: String,
-      default: '', 
+      default: "",
     },
-
 
     followers: [{ type: mongoose.Schema.Types.ObjectId, ref: "MediaUser" }],
     following: [{ type: mongoose.Schema.Types.ObjectId, ref: "MediaUser" }],
@@ -34,10 +33,12 @@ const mediaUserSchema = new mongoose.Schema(
         postId: { type: mongoose.Schema.Types.ObjectId, ref: "Post" },
         content: String,
         createdAt: { type: Date, default: Date.now },
+        images: [{ type: String }], // Add these fields
+        videos: [{ type: String }], // Add these fields
       },
     ],
   },
-  { timestamps: true },
+  { timestamps: true }
 );
 
 const MediaUser = mongoose.model("MediaUser", mediaUserSchema, "mediausers");

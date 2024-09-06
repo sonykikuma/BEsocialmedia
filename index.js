@@ -1,8 +1,7 @@
 const express = require("express");
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
-
-//adding new things 
+//adding new things
 const multer = require("multer");
 const path = require("path");
 
@@ -18,7 +17,6 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 // up to here
 
-
 const app = express();
 const cors = require("cors");
 const corsOptions = {
@@ -30,15 +28,13 @@ const corsOptions = {
 app.use(cors(corsOptions));
 
 const { initializeDatabase } = require("./db");
-const Post = require("./models/post.models")
-const MediaUser = require("./models/user.models")
-const bcrypt = require('bcrypt');// for security reasons, it's important to hash the password before saving it to the database. 
-
+const Post = require("./models/post.models");
+const MediaUser = require("./models/user.models");
+const bcrypt = require("bcrypt"); // for security reasons, it's important to hash the password before saving it to the database.
 
 app.use(express.json());
 // Serve static files from the "uploads" directory
 app.use("/uploads", express.static("uploads"));
-
 
 initializeDatabase();
 app.get("/", (req, res) => {
@@ -46,7 +42,6 @@ app.get("/", (req, res) => {
 });
 
 //The exec() method is used to explicitly execute a query and return a promise. When we chain methods like find(), select(), sort(), etc., in Mongoose, it doesn't immediately execute the query. Instead, it creates a query object that you can later execute using .exec().
-
 
 //1. to get all the users
 app.get("/media-users", async (req, res) => {
@@ -124,7 +119,7 @@ app.put("/media-user/:userId", async (req, res) => {
 
     if (postId && newContent) {
       const postToUpdate = user.posts.find(
-        (post) => post._id.toString() === postId
+        (post) => post._id.toString() === postId,
       );
       if (postToUpdate) {
         postToUpdate.content = newContent;
@@ -315,7 +310,7 @@ app.put("/posts/:postId", async (req, res) => {
         images: images || [],
         videos: videos || [],
       },
-      { new: true }
+      { new: true },
     );
 
     if (!updatedPost) {
@@ -326,7 +321,7 @@ app.put("/posts/:postId", async (req, res) => {
 
     if (user) {
       const postIndex = user.posts.findIndex(
-        (post) => post.postId && post.postId.toString() === postId.toString()
+        (post) => post.postId && post.postId.toString() === postId.toString(),
       );
 
       if (postIndex !== -1) {
@@ -481,12 +476,11 @@ app.post("/media-user/remove-bookmark/:postId", async (req, res) => {
 app.post("/media-user/follow/:userId", async (req, res) => {
   const currentUserId = req.body.userId; //
   const targetUserId = req.params.userId;
-
+  console.log(currentUserId, targetUserId);
   if (!currentUserId || !targetUserId) {
     return res.status(404).json({ message: "User(ids) not found" });
   }
 
-  
   try {
     const currentUser = await MediaUser.findById(currentUserId);
     const targetUser = await MediaUser.findById(targetUserId);
@@ -516,13 +510,10 @@ app.post("/media-user/unfollow/:userId", async (req, res) => {
   const currentUserId = req.body.userId; // Assuming the logged-in user's ID is sent in the request body
   const targetUserId = req.params.userId;
 
-
   if (!currentUserId || !targetUserId) {
     return res.status(404).json({ message: "User(s) not found" });
   }
 
-
-  
   try {
     const currentUser = await MediaUser.findById(currentUserId);
     const targetUser = await MediaUser.findById(targetUserId);

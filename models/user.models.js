@@ -25,8 +25,12 @@ const mediaUserSchema = new mongoose.Schema(
       default: "",
     },
 
-    followers: [{ type: mongoose.Schema.Types.ObjectId, ref: "MediaUser" }],
-    following: [{ type: mongoose.Schema.Types.ObjectId, ref: "MediaUser" }],
+    followers: [
+      // { type: mongoose.Schema.Types.ObjectId, ref: "MediaUser" }
+    ],
+    following: [
+      // { type: mongoose.Schema.Types.ObjectId, ref: "MediaUser" }
+    ],
     bookmarks: [{ type: mongoose.Schema.Types.ObjectId, ref: "Post" }],
     posts: [
       {
@@ -38,7 +42,7 @@ const mediaUserSchema = new mongoose.Schema(
       },
     ],
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 const MediaUser = mongoose.model("MediaUser", mediaUserSchema, "mediausers");
